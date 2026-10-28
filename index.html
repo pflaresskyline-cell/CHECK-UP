@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Check-in - Safari do Dudu (1 Ano)</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --safari-green: #2d5a27;
+            --safari-light-green: #486b36;
+            --safari-sand: #f4f1ea;
+            --safari-earth: #8b5a2b;
+            --safari-gold: #d4a373;
+        }
+
+        body {
+            background-color: var(--safari-sand);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding-bottom: 40px;
+        }
+
+        .header-checkin {
+            background: linear-gradient(135deg, var(--safari-green), var(--safari-light-green));
+            color: white;
+            padding: 15px 10px;
+            border-bottom: 4px solid var(--safari-gold);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            position: relative;
+        }
+
+        .header-title {
+            font-size: 1.25rem;
+            margin-bottom: 2px;
+        }
+
+        .card-stat {
+            background: #ffffff;
+            border-radius: 10px;
+            border: 1px solid #e2dbcd;
+            padding: 8px 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .card-stat small {
+            font-size: 0.7rem;
+            line-height: 1.1;
+        }
+
+        .card-stat h4 {
+            font-size: 1.1rem;
+        }
+
+        .guest-card {
+            background: white;
+            border-radius: 12px;
+            border-left: 6px solid #6c757d;
+            margin-bottom: 12px;
+            padding: 14px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            transition: all 0.2s ease;
+        }
+
+        .guest-card.checked-in-partial {
+            border-left-color: #ffc107;
+            background-color: #fffdf5;
+        }
+
+        .guest-card.checked-in-full {
+            border-left-color: #198754;
+            background-color: #f8fff9;
+        }
+
+        .search-box {
+            border-radius: 25px;
+            padding-left: 42px;
+            border: 2px solid var(--safari-light-green);
+            font-size: 0.95rem;
+            height: 48px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--safari-light-green);
+        }
+
+        .link-tel {
+            color: #495057;
+            text-decoration: none;
+            display: inline-block;
+            padding: 2px 0;
+        }
+
+        .badge-wa {
+            text-decoration: none !important;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.75rem !important;
+            padding: 4px 8px;
+        }
+
+        /* Otimização do Controle Incremental no Celular */
+        .checkin-control-box {
+            background: #f1f3f5;
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn-qty {
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .btn-lock {
+            position: absolute;
+            right: 12px;
+            top: 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            padding: 5px 10px;
+        }
+
+        /* Botão para abrir o Mapa de Mesas */
+        .btn-mesas {
+            position: absolute;
+            left: 12px;
+            top: 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            padding: 5px 10px;
+            text-decoration: none;
+        }
+
+        /* Ajustes específicos para telas finas */
+        @media (max-width: 576px) {
+            .container-mobile {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header com Botão de Mesas e Botão de Trava -->
+<header class="header-checkin text-center mb-3">
+    <!-- Ícone / Botão para abrir Mesas -->
+    <a href="https://album-dudumesas.5gq74s.easypanel.host/" target="_blank" class="btn btn-info text-white btn-mesas shadow-sm" title="Abrir Mapa de Mesas">
+        <i class="fas fa-chair me-1"></i> <span>Mesas</span>
+    </a>
+
+    <!-- Botão de Trava -->
+    <button id="btnTrava" onclick="alternarTrava()" class="btn btn-warning btn-lock shadow-sm">
+        <i class="fas fa-lock me-1"></i> <span id="labelTrava">Bloqueado</span>
+    </button>
+
+    <h3 class="fw-bold header-title">🦁 Check-in: Safari do Dudu 🦒</h3>
+    <p class="mb-0 text-warning small fw-semibold">1 ANO - Controle da Recepção</p>
+</header>
+
+<div class="container container-mobile" style="max-width: 700px;">
+
+    <!-- Resumo de Presenças (Grid Adaptável no Mobile) -->
+    <div class="row g-2 mb-3 text-center">
+        <div class="col-4 col-sm-2-4">
+            <div class="card-stat">
+                <small class="text-muted fw-semibold">Total</small>
+                <h4 class="mb-0 text-dark fw-bold mt-1" id="statTotalPessoas">0</h4>
+            </div>
+        </div>
+        <div class="col-4 col-sm-2-4">
+            <div class="card-stat">
+                <small class="text-muted fw-semibold">Na Festa</small>
+                <h4 class="mb-0 text-success fw-bold mt-1" id="statNaFesta">0</h4>
+            </div>
+        </div>
+        <div class="col-4 col-sm-2-4">
+            <div class="card-stat">
+                <small class="text-muted fw-semibold">Faltam</small>
+                <h4 class="mb-0 text-danger fw-bold mt-1" id="statFaltam">0</h4>
+            </div>
+        </div>
+        <div class="col-6 col-sm-2-4">
+            <div class="card-stat">
+                <small class="text-muted fw-semibold">Adultos Presentes</small>
+                <h4 class="mb-0 text-primary fw-bold mt-1" id="statAdultosFesta">0 / 0</h4>
+            </div>
+        </div>
+        <div class="col-6 col-sm-2-4">
+            <div class="card-stat">
+                <small class="text-muted fw-semibold">Crianças Presentes</small>
+                <h4 class="mb-0 text-warning fw-bold mt-1" id="statCriancasFesta">0 / 0</h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- Busca -->
+    <div class="position-relative mb-3">
+        <i class="fas fa-search search-icon fs-5"></i>
+        <input type="text" id="inputBusca" class="form-control search-box shadow-sm" placeholder="Buscar por nome ou telefone...">
+    </div>
+
+    <!-- Lista Dinâmica -->
+    <div id="listaConvidados">
+        <div class="text-center text-muted py-5">
+            <i class="fas fa-spinner fa-spin fa-2x mb-2"></i>
+            <p>Carregando dados...</p>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const SUPABASE_URL = "https://wtujaawfxmfqgvvwkjce.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_Tgu_ZkuqGcDdRxeisegrQQ_DU1-QKPx";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let dadosConvidados = [];
+    let estaDestravado = false;
+
+    document.addEventListener("DOMContentLoaded", () => {
+        carregarListaCheckin();
+
+        document.getElementById('inputBusca').addEventListener('input', (e) => {
+            renderizarLista(e.target.value);
+        });
+    });
+
+    function alternarTrava() {
+        if (!estaDestravado) {
+            const senha = prompt("Digite a senha para liberar as edições:");
+            if (senha === "123") {
+                estaDestravado = true;
+                atualizarBotaoTrava();
+                renderizarLista(document.getElementById('inputBusca').value);
+            } else if (senha !== null) {
+                alert("Senha incorreta!");
+            }
+        } else {
+            estaDestravado = false;
+            atualizarBotaoTrava();
+            renderizarLista(document.getElementById('inputBusca').value);
+        }
+    }
+
+    function atualizarBotaoTrava() {
+        const btn = document.getElementById('btnTrava');
+        if (estaDestravado) {
+            btn.className = "btn btn-success btn-lock shadow-sm";
+            btn.innerHTML = `<i class="fas fa-lock-open me-1"></i><span>Editável</span>`;
+        } else {
+            btn.className = "btn btn-warning btn-lock shadow-sm";
+            btn.innerHTML = `<i class="fas fa-lock me-1"></i><span>Bloqueado</span>`;
+        }
+    }
+
+    async function carregarListaCheckin() {
+        const { data, error } = await supabaseClient
+            .from('confirmacoes')
+            .select('*')
+            .order('nome', { ascending: true });
+
+        if (error) {
+            alert("Erro ao carregar dados: " + error.message);
+            return;
+        }
+
+        dadosConvidados = data || [];
+        atualizarMetricas();
+        renderizarLista();
+    }
+
+    function atualizarMetricas() {
+        let totalPessoas = 0;
+        let totalAdultosConfirmados = 0;
+        let totalCriancasConfirmadas = 0;
+
+        let naFesta = 0;
+        let adultosNaFesta = 0;
+        let criancasNaFesta = 0;
+
+        dadosConvidados.forEach(item => {
+            const adultos = item.adultos || 1;
+            const criancas = item.criancas || 0;
+            const totalGrupo = adultos + criancas;
+
+            totalAdultosConfirmados += adultos;
+            totalCriancasConfirmadas += criancas;
+            totalPessoas += totalGrupo;
+
+            let presentesCount = item.presentes_count !== undefined && item.presentes_count !== null 
+                ? item.presentes_count 
+                : (item.presente ? totalGrupo : 0);
+
+            presentesCount = Math.min(presentesCount, totalGrupo);
+            naFesta += presentesCount;
+
+            let adEntraram = Math.min(presentesCount, adultos);
+            let crEntraram = Math.max(0, presentesCount - adultos);
+
+            adultosNaFesta += adEntraram;
+            criancasNaFesta += crEntraram;
+        });
+
+        const faltam = Math.max(0, totalPessoas - naFesta);
+
+        document.getElementById('statTotalPessoas').innerText = totalPessoas;
+        document.getElementById('statNaFesta').innerText = naFesta;
+        document.getElementById('statAdultosFesta').innerText = `${adultosNaFesta}/${totalAdultosConfirmados}`;
+        document.getElementById('statCriancasFesta').innerText = `${criancasNaFesta}/${totalCriancasConfirmadas}`;
+        document.getElementById('statFaltam').innerText = faltam;
+    }
+
+    function renderizarLista(filtro = "") {
+        const container = document.getElementById('listaConvidados');
+        const termo = filtro.toLowerCase().trim();
+
+        const filtrados = dadosConvidados.filter(c => 
+            (c.nome && c.nome.toLowerCase().includes(termo)) ||
+            (c.telefone && c.telefone.includes(termo))
+        );
+
+        if (filtrados.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-muted py-4 bg-white rounded shadow-sm">
+                    <i class="fas fa-user-slash fa-2x mb-2"></i>
+                    <p class="mb-0">Nenhum convidado encontrado.</p>
+                </div>`;
+            return;
+        }
+
+        container.innerHTML = filtrados.map(item => {
+            const adultos = item.adultos || 1;
+            const criancas = item.criancas || 0;
+            const totalGrupo = adultos + criancas;
+
+            let presentesCount = item.presentes_count !== undefined && item.presentes_count !== null 
+                ? item.presentes_count 
+                : (item.presente ? totalGrupo : 0);
+
+            const faltamEntrar = Math.max(0, totalGrupo - presentesCount);
+
+            let cardClass = "";
+            let statusBadge = "";
+
+            if (presentesCount === 0) {
+                cardClass = "";
+                statusBadge = `<span class="badge bg-secondary">Aguardando</span>`;
+            } else if (presentesCount < totalGrupo) {
+                cardClass = "checked-in-partial";
+                statusBadge = `<span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Faltam ${faltamEntrar}</span>`;
+            } else {
+                cardClass = "checked-in-full";
+                statusBadge = `<span class="badge bg-success"><i class="fas fa-check-double me-1"></i>Completo</span>`;
+            }
+
+            const origem = item.convidado_de || 'Geral';
+            const telLimpo = item.telefone ? item.telefone.replace(/\D/g, '') : '';
+            let linkWhatsapp = '#';
+            let badgeClass = "bg-secondary";
+
+            if (origem.includes('Pai') || origem.includes('Paulo')) {
+                badgeClass = "bg-primary";
+                linkWhatsapp = "https://wa.me/5531971127212";
+            } else if (origem.includes('Mãe') || origem.includes('Josi')) {
+                badgeClass = "bg-danger";
+                linkWhatsapp = "https://wa.me/5531993959850";
+            }
+
+            const disabledAttr = !estaDestravado ? 'disabled' : '';
+
+            return `
+                <div class="guest-card ${cardClass}">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="fw-bold mb-1 text-dark fs-6">
+                                ${item.nome || 'Sem Nome'}
+                            </h6>
+                            <a href="${linkWhatsapp}" target="_blank" class="badge ${badgeClass} badge-wa mb-1" title="Chamar no WhatsApp">
+                                <i class="fab fa-whatsapp me-1"></i>${origem}
+                            </a>
+                        </div>
+                        <div>
+                            ${statusBadge}
+                        </div>
+                    </div>
+
+                    <div class="text-muted small mb-2">
+                        ${telLimpo ? `
+                            <a href="tel:${telLimpo}" class="link-tel fw-semibold me-2" title="Clique para ligar">
+                                <i class="fas fa-phone me-1 text-success"></i>${item.telefone}
+                            </a>
+                        ` : ''}
+                        <div>
+                            <span class="text-dark"><i class="fas fa-user me-1 text-secondary"></i>${adultos} Ad.</span> | 
+                            <span class="text-dark ms-1"><i class="fas fa-child me-1 text-secondary"></i>${criancas} Cri.</span>
+                        </div>
+                    </div>
+
+                    <!-- Controle de Presença Ajustado para Toque Celular -->
+                    <div class="checkin-control-box">
+                        <span class="small fw-bold text-muted">Entraram:</span>
+                        
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-outline-danger btn-qty" onclick="alterarQuantidade(${item.id}, ${presentesCount - 1}, ${totalGrupo})" ${disabledAttr} ${presentesCount <= 0 ? 'disabled' : ''}>-</button>
+                            <span class="fw-bold fs-5 px-2 text-dark">${presentesCount}/${totalGrupo}</span>
+                            <button class="btn btn-outline-success btn-qty" onclick="alterarQuantidade(${item.id}, ${presentesCount + 1}, ${totalGrupo})" ${disabledAttr} ${presentesCount >= totalGrupo ? 'disabled' : ''}>+</button>
+                            
+                            <button class="btn btn-sm ${presentesCount === totalGrupo ? 'btn-success' : 'btn-outline-primary'} ms-1 fw-semibold py-2 px-3" onclick="alterarQuantidade(${item.id}, ${presentesCount === totalGrupo ? 0 : totalGrupo}, ${totalGrupo})" ${disabledAttr}>
+                                ${presentesCount === totalGrupo ? '<i class="fas fa-check"></i>' : 'Todos'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function alterarQuantidade(id, novaQtd, maxTotal) {
+        if (!estaDestravado) {
+            alert("Toque no botão de cadeado no topo e digite a senha (123) para editar!");
+            return;
+        }
+
+        if (novaQtd < 0) novaQtd = 0;
+        if (novaQtd > maxTotal) novaQtd = maxTotal;
+
+        const estaPresente = novaQtd > 0;
+
+        const index = dadosConvidados.findIndex(c => c.id === id);
+        if (index !== -1) {
+            dadosConvidados[index].presentes_count = novaQtd;
+            dadosConvidados[index].presente = estaPresente;
+            atualizarMetricas();
+            renderizarLista(document.getElementById('inputBusca').value);
+        }
+
+        const { error } = await supabaseClient
+            .from('confirmacoes')
+            .update({ 
+                presentes_count: novaQtd,
+                presente: estaPresente
+            })
+            .eq('id', id);
+
+        if (error) {
+            alert("Não foi possível salvar no banco de dados: " + error.message);
+            carregarListaCheckin();
+        }
+    }
+</script>
+</body>
+</html>
